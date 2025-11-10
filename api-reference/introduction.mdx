@@ -1,33 +1,75 @@
 ---
 title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+description: 'Get started with the StackSee API for website technology analysis'
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Welcome to StackSee API
 
-## Welcome
+StackSee provides a powerful REST API for analyzing websites and extracting technology stack information. Discover what frameworks, libraries, hosting providers, and technologies any website uses with a single API call.
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+## Base URL
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+```
+https://api.stacksee.com
+```
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All API endpoints require authentication using an API key. Include your API key in the request header:
 
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+```bash
+X-API-Key: your_api_key_here
 ```
+
+You can obtain your API key from the [StackSee Dashboard](https://dashboard.stacksee.com).
+
+### Example Request
+
+```bash
+curl -X POST https://api.stacksee.com/api/v1/domain/analyze \
+  -H "X-API-Key: your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com",
+    "deepScan": false
+  }'
+```
+
+## Rate Limiting
+
+API requests are rate-limited based on your subscription plan:
+
+- **Free Tier**: 100 requests per day
+- **Pro Tier**: 1,000 requests per day
+- **Enterprise**: Custom limits
+
+Rate limit information is included in the response headers:
+- `X-RateLimit-Limit`: Maximum requests allowed
+- `X-RateLimit-Remaining`: Remaining requests in current window
+- `X-RateLimit-Reset`: Timestamp when the rate limit resets
+
+## Response Format
+
+All responses are returned in JSON format. Successful responses include the analyzed data, while errors include descriptive error messages.
+
+### Success Response
+```json
+{
+  "status": "success",
+  "data": {
+    // Analysis results
+  }
+}
+```
+
+### Error Response
+```json
+{
+  "error": "Invalid request data",
+  "message": "URL is required"
+}
+```
+
+## Support
+
+Need help? Contact us at [support@stacksee.com](mailto:support@stacksee.com) or visit our [documentation](https://docs.stacksee.com).

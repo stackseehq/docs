@@ -1,0 +1,357 @@
+---
+title: 'Analyze Website'
+openapi: 'POST /api/v1/domain/analyze'
+---
+
+The Analyze endpoint is the core of StackSee's API. It allows you to analyze any website to extract technology stack information, including frameworks, libraries, hosting providers, and branding details.
+
+## Features
+
+- **Technology Detection**: Automatically identifies frameworks, libraries, CMS platforms, and other technologies
+- **Brand Extraction**: Captures logos, colors, and other branding elements
+- **Deep Scanning**: Optionally crawl multiple pages for more comprehensive analysis
+- **Smart Caching**: Configurable caching with freshness controls to balance speed and accuracy
+- **Async Processing**: Support for webhook notifications for long-running analyses
+
+## Use Cases
+
+### Quick Technology Check
+Perform a fast analysis to get immediate results for a website's technology stack.
+
+### Comprehensive Deep Scan
+Enable deep scanning to analyze multiple pages and get detailed insights about the entire website architecture.
+
+### Automated Processing
+Use webhook notifications to integrate website analysis into your automated workflows and pipelines.
+
+## Response Types
+
+The endpoint returns different response types depending on the analysis conditions:
+
+### 1. Standard Analysis Response
+
+Returned when analysis completes within the `maxWait` time:
+
+```json
+{
+  "profile": {
+    "url": "https://example.com",
+    "domain": "example.com",
+    "scannedAt": "2024-01-15T10:30:00.000Z",
+    "scan": {
+      "type": "quick",
+      "coverage": 1
+    }
+  },
+  "stack": {
+    "components": [...],
+    "summary": {
+      "total": 5,
+      "byType": {
+        "js-framework": 1,
+        "hosting": 1
+      }
+    }
+  },
+  "identity": {
+    "name": "Example Company",
+    "domain": "example.com",
+    "branding": {...},
+    "social": {...}
+  }
+}
+```
+
+### 2. Cached Response
+
+Returned when valid cached data is available:
+
+```json
+{
+  "profile": {...},
+  "stack": {...},
+  "identity": {...},
+  "cache": {
+    "hit": true,
+    "age": 5400,
+    "taskId": "task_abc123"
+  }
+}
+```
+
+### 3. Async Scan Response
+
+Returned when analysis exceeds `maxWait` and continues asynchronously:
+
+```json
+{
+  "url": "https://example.com",
+  "status": "scanning",
+  "taskId": "task_xyz789",
+  "estimatedDuration": "2-3 minutes",
+  "statusUrl": "https://api.stacksee.com/api/v1/tasks/task_xyz789/status",
+  "webhookConfigured": true,
+  "message": "Analysis is taking longer than expected. Results will be sent to your webhook when complete."
+}
+```
+
+## Response Fields
+
+<ResponseField name="profile" type="object" required>
+  Metadata about the analyzed website
+
+  <Expandable title="profile properties">
+    <ResponseField name="url" type="string" required>
+      The analyzed URL
+    </ResponseField>
+
+    <ResponseField name="domain" type="string" required>
+      Normalized domain name
+    </ResponseField>
+
+    <ResponseField name="scannedAt" type="string" required>
+      ISO 8601 timestamp of when the scan was performed
+    </ResponseField>
+
+    <ResponseField name="scan" type="object" required>
+      Scan details
+
+      <Expandable title="scan properties">
+        <ResponseField name="type" type="enum" required>
+          Type of scan: `quick` or `deep`
+        </ResponseField>
+
+        <ResponseField name="coverage" type="integer" required>
+          Number of pages analyzed
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="stack" type="object" required>
+  Detected technology stack information
+
+  <Expandable title="stack properties">
+    <ResponseField name="components" type="array" required>
+      List of detected technologies
+
+      <Expandable title="component properties">
+        <ResponseField name="name" type="string" required>
+          Display name of the technology (e.g., "React", "Next.js")
+        </ResponseField>
+
+        <ResponseField name="identifier" type="string" required>
+          Unique identifier for the technology (e.g., "react", "nextjs")
+        </ResponseField>
+
+        <ResponseField name="detectedVersions" type="array" required>
+          Array of detected version numbers
+        </ResponseField>
+
+        <ResponseField name="classification" type="array" required>
+          Technology categories
+
+          <Expandable title="classification properties">
+            <ResponseField name="label" type="string" required>
+              Human-readable category (e.g., "JavaScript Framework")
+            </ResponseField>
+
+            <ResponseField name="key" type="string" required>
+              Machine-readable key (e.g., "js-framework")
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+
+        <ResponseField name="certainty" type="integer">
+          Confidence score (0-100) for the detection
+        </ResponseField>
+
+        <ResponseField name="metadata" type="object">
+          Additional technology information
+
+          <Expandable title="metadata properties">
+            <ResponseField name="icon" type="string">
+              URL to technology icon/logo
+            </ResponseField>
+
+            <ResponseField name="homepage" type="string">
+              Technology's official homepage
+            </ResponseField>
+
+            <ResponseField name="summary" type="string">
+              Brief description of the technology
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="summary" type="object" required>
+      Summary statistics
+
+      <Expandable title="summary properties">
+        <ResponseField name="total" type="integer" required>
+          Total number of detected technologies
+        </ResponseField>
+
+        <ResponseField name="byType" type="object">
+          Count of technologies grouped by category key
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="identity" type="object">
+  Brand and identity information (requires `includeBrand: true`)
+
+  <Expandable title="identity properties">
+    <ResponseField name="name" type="string" required>
+      Company or website name
+    </ResponseField>
+
+    <ResponseField name="domain" type="string" required>
+      Primary domain
+    </ResponseField>
+
+    <ResponseField name="tagline" type="string">
+      Company tagline or slogan
+    </ResponseField>
+
+    <ResponseField name="about" type="string">
+      Company description
+    </ResponseField>
+
+    <ResponseField name="branding" type="object">
+      Visual branding assets
+
+      <Expandable title="branding properties">
+        <ResponseField name="primaryLogo" type="string">
+          URL to primary logo
+        </ResponseField>
+
+        <ResponseField name="favicon" type="string">
+          URL to favicon
+        </ResponseField>
+
+        <ResponseField name="palette" type="object">
+          Brand color palette
+
+          <Expandable title="palette properties">
+            <ResponseField name="primary" type="string">
+              Primary brand color (hex code)
+            </ResponseField>
+
+            <ResponseField name="accent" type="string">
+              Accent brand color (hex code)
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="social" type="object">
+      Social media profiles
+
+      <Expandable title="social properties">
+        <ResponseField name="twitter" type="string">
+          Twitter/X profile URL
+        </ResponseField>
+
+        <ResponseField name="linkedin" type="string">
+          LinkedIn profile URL
+        </ResponseField>
+
+        <ResponseField name="github" type="string">
+          GitHub organization URL
+        </ResponseField>
+
+        <ResponseField name="facebook" type="string">
+          Facebook page URL
+        </ResponseField>
+
+        <ResponseField name="instagram" type="string">
+          Instagram profile URL
+        </ResponseField>
+
+        <ResponseField name="youtube" type="string">
+          YouTube channel URL
+        </ResponseField>
+
+        <ResponseField name="tiktok" type="string">
+          TikTok profile URL
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="cache" type="object">
+  Cache metadata (only present when cached data is returned)
+
+  <Expandable title="cache properties">
+    <ResponseField name="hit" type="boolean" required>
+      Always `true` for cached responses
+    </ResponseField>
+
+    <ResponseField name="age" type="integer" required>
+      Age of cached data in seconds
+    </ResponseField>
+
+    <ResponseField name="taskId" type="string">
+      Reference to the original analysis task
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Async Processing
+
+When analysis takes longer than `maxWait` seconds, the endpoint returns an async response with a `taskId`. You can:
+
+1. **Poll for Results**: Use the `statusUrl` to check task status
+2. **Webhook Notification**: Provide a `webhookUrl` to receive results automatically when complete
+
+### Async Response Fields
+
+<ResponseField name="url" type="string" required>
+  The URL being analyzed
+</ResponseField>
+
+<ResponseField name="status" type="string" required>
+  Current status: `scanning`
+</ResponseField>
+
+<ResponseField name="taskId" type="string" required>
+  Unique identifier for tracking this analysis
+</ResponseField>
+
+<ResponseField name="estimatedDuration" type="string" required>
+  Human-readable estimate (e.g., "2-3 minutes")
+</ResponseField>
+
+<ResponseField name="statusUrl" type="string" required>
+  URL to poll for task status and results
+</ResponseField>
+
+<ResponseField name="webhookConfigured" type="boolean" required>
+  Whether a webhook will receive the results
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Human-readable message about the async processing
+</ResponseField>
+
+## Caching Behavior
+
+The endpoint supports intelligent caching controlled by the `freshness` parameter:
+
+- **`auto`** (default): Uses cached data if available and not stale, otherwise fetches fresh data
+- **`cached`**: Always returns cached data if available, fails if no cache exists
+- **`fresh`**: Always performs a fresh analysis, updates the cache
+
+The `maxCacheAge` parameter controls cache staleness (default: 168 hours / 7 days).
+
+## Rate Limiting
+
+API requests are subject to rate limiting based on your subscription plan. Include your API key in the `X-API-Key` header for authentication.
